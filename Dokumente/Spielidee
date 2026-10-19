@@ -1,0 +1,29 @@
+Michael: 
+Escape-Room Horror-Game Godot/Unity, Puzzler
+Killer (stalkt, kann provoziert werden, jagen, töten, kann sich wegteleportieren)
+Am Ende wenn Tür geöffnet, jagt er einen
+Tutorial mit Puzzle: Anfangsraum, sobald man raus aus dem Raum fängts an
+Tipps von vorherigen Opfern in Holz eingraviert, statt direkt zeigen
+Mainmodel: Killer
+Sound-Design: gruselige Stillen bedrückend, bei Chase-Sequenzen aufspielen
+Randomize Items?
+Vergleichbare Spiele: Hello Neighbor, RE7, Alien
+AI: weiß wo man ist und lernt dazu
+SCHWERPUNKT: 1 Model, Blender, KI, Leveldesign (Mehrere Pfade, Keine Safespots oder sowas)
+
+Rolle des Spielers:
+Single Player
+Spieler versucht dem Killer zu entkommen
+Spieler interagiert mit Umgebung
+Spieler hat keinen distinkten Charakter für Immersion (Menschen)
+Keine Voicelines des Spielers (unlustige Witze die von der Immersion nehmen)
+
+
+Alternative: Rogue-like Spiel?
+Randomized Elemente
+Umfang viel größer
+Mehrere Gegner => Models, Health und Stats
+Items für Spieler
+
+Handwriting, Brainstorming
+
