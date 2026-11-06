@@ -1,0 +1,75 @@
+- **Projekt starten**
+  - Unity `6000.6.5f1`; Universal Render Pipeline (URP); neues Input System.
+  - `Assets/Scenes/VillaPrototype.unity` öffnen; als Build-Szene eingetragen.
+  - `SampleScene.unity`: ursprüngliche Beispielszene (irrelevant).
+
+- **Dateien und Ordner**
+  - `Assets/Scripts/Villa/`: Laufzeitskripte; Namespace `FamiliarDread`.
+  - `Assets/Editor/`: Bau- und Anpassungswerkzeuge; ausschließlich für den Unity-Editor.
+  - `Assets/VillaPrototype/Materials/`: gemeinsam verwendete Materialien.
+  - `Assets/VillaPrototype/Prefabs/`: `Innentuer.prefab`, `Eingangstuer.prefab`.
+  - `Assets/VillaPrototype/*.asset`: Dach-Meshes und besondere Wand-/Decken-Meshes am Kellerzugang.
+  - `Assets/VillaPrototype/Garten/`: Gelände-/Giebel-Meshes und Baumlaub-Materialien.
+  - `Assets/Settings/`: Renderpipeline und Profile.
+  - `Packages/`: Paketabhängigkeiten; `ProjectSettings/`: Projekteinstellungen.
+
+- **Laufzeitskripte**
+  - `VillaExplorer.cs`: Bewegung über `CharacterController`, Kamera, Taschenlampe, Interaktion und Leiterbewegung.
+    - `view`: Spielerkamera; `climbSpeed`: Klettergeschwindigkeit.
+    - `StepMovement()`: Gehen/Klettern; `Target()`: Zielsuche; `Interact()`: Tür/Luke bedienen.
+    - `UpdateInteractionHighlight()`: farbliche Hervorhebung des erreichbaren Blickziels; `ClearInteractionHighlight()`: ursprüngliche Darstellung wiederherstellen.
+    - Inspector: `highlightInteractions` zum Ein-/Ausschalten; `interactionHighlightColor` für die Farbe; Geheimtüren bleiben unmarkiert.
+    - E-Reichweite: `3` Meter im `Physics.Raycast()` in `Target()`; zusätzliche Lukenprüfung ebenfalls auf `3` Meter begrenzt.
+  - `VillaDoor.cs`: Türanimation am Scharnierobjekt; Bedienung durch `VillaExplorer`.
+    - `angle`: Öffnungswinkel; Vorzeichen für die Drehrichtung ändern.
+    - `open`: Öffnungszustand; `Toggle()`: Zustand wechseln.
+    - `hideInteractionHint`: E-Hinweis ausblenden; Interaktion bleibt möglich.
+  - `VillaLadder.cs`: Leiterregistrierung, Einstiegserkennung, Lukenanimation und Schutz gegen Schließen bei blockiertem Durchstieg.
+    - `lowerExit` / `upperExit`: Austrittspunkte; `lowerClimb` / `upperClimb`: Kletterpunkte.
+    - `hatchPivot`: Scharnier; `hatchCollider`: Lukendeckel-Collider.
+    - `CanGrab()`: Einstieg prüfen; `TryToggleHatch()`: Luke bedienen.
+    - Aktuelle Einstiegserkennung auf entlang der Welt-Z-Achse ausgerichtete Leitern ausgelegt.
+
+- **Wichtige Szeneobjekte unter `VILLA_PROTOTYPE`**
+  - `Keller`, `Erdgeschoss`, `1_OG_Wohnen`, `2_OG_Schlafen`, `Dachboden`: Geschossbauteile.
+  - `EG_Raumaufteilung`, `1OG_Raumaufteilung`, `2OG_Raumaufteilung`: Innenwände und Türen.
+  - `Beleuchtung_und_Spieler/Player_Kind`: Spielfigur; darunter `Main Camera` und `Taschenlampe_F`.
+  - `Haupttreppe_Kompakt`: Haupttreppen; `Nebentreppen_Anpassung`: Kellertreppe; `Aussentreppe`: Eingangstreppen.
+  - `Nebenraeume_Zugaenge/Dachbodenleiter`: Dachbodenleiter und Luke.
+  - `Nebenraeume_Zugaenge/Kellerzugang_Abgetrennt`: Kellerzugang mit Tür und ergänzten Bauteilen.
+  - `Dach_und_Fassade`, `Doppelgarage`, `Fassaden_Ecksaeulen`, `Gelaender_Anschluesse`: Gebäude- und Geländerdetails.
+  - `Garten_und_Zufahrt/Garten_Hoehenprofil`: Gelände mit MeshCollider.
+  - `Garten_und_Zufahrt/Garten_Ausstattung`: Zaun, Bäume, Gartenhaus, Rampe und Wegergänzungen.
+  - `Geheimraum_Verbindung`: Geheimgang, Geheimraum, getarnte Kellertür und Gartenhaus-Leiterzugang.
+    - Kellertür: `Keller_Geheimtuer/Geheimtuer_Scharnier`; mit E bedienbar, ohne Hinweis; späterer Rätselmechanismus noch offen.
+    - Gartenhausleiter/Luke: `Gartenhaus_Leiterzugang`.
+    - Gelände mit Schachtöffnung: `Assets/VillaPrototype/Garten/Garten_Hoehenprofil_Mit_Geheimschacht.asset`.
+
+- **Editor-Werkzeuge unter `Familiar Dread > Villa`**
+  - `VillaBuilder.cs`: Grundaufbau und Treppenumbauten.
+  - `VillaPolish.cs`: Gebäudedetails und Zimmerleuchten.
+  - `VillaEntrance.cs`: äußere Eingangstreppen und Podest.
+  - `VillaAccess.cs`: Dachbodenleiter und abgetrennter Kellerzugang.
+  - `VillaFrameJoints.cs`: Tür-/Fensterrahmen und Fensterbankanschlüsse.
+  - `VillaRailingJoints.cs`: bündige Geländeranschlüsse.
+  - `VillaCornerColumns.cs`: Ecksäulen an Dachgesimsen.
+  - `VillaGardenRelief.cs`: Geländeprofil.
+  - `VillaGardenDetails.cs`: Zaun, Bäume und Gartenhaus.
+  - `VillaGardenShedResize.cs`: Gartenhaus auf 9 × 8 Meter vergrößern.
+  - `VillaSecretRoom.cs`: Keller-Gartenhaus-Verbindung bauen und prüfen.
+
+- **Steuerung**
+  - WASD: bewegen; Maus: umsehen; linke Umschalttaste: schneller gehen.
+  - E: anvisierte Tür/Luke öffnen oder schließen; F: Taschenlampe umschalten.
+  - Auf der Leiter: W hoch, S runter, ohne W/S anhalten; A/D ohne Wirkung; Ausstieg nur an den Enden.
+  - Esc: Maus freigeben; rechte Maustaste: Maus wieder einfangen.
+
+- **Beim Bearbeiten beachten**
+  - Gespeicherte Szene als Arbeitsstand verwenden; Gebäude größtenteils aus direkten Szeneobjekten aufgebaut.
+  - Bauwerkzeuge nicht routinemäßig erneut ausführen; manche ersetzen Objektgruppen und überschreiben manuelle Anpassungen.
+  - Änderungen dauerhaft im Edit-Modus vornehmen und Szene speichern.
+  - Fensterteile zusammen mit der Wandöffnung versetzen; Leiter zusammen mit Referenzpunkten, Luke und Boden-/Deckenöffnungen versetzen.
+  - Zimmerleuchten über die ganze `CeilingFixture_`-Gruppe versetzen; Lichtwerte an `Raumlicht` ändern.
+  - Gemeinsame Materialien wirken auf sämtliche zugewiesenen Objekte.
+  - Deaktivierte Originalteile bei Gelände-, Geheimtür- und Gartenhausöffnungen nicht versehentlich aktivieren.
+  - Assets mit zugehörigen `.meta`-Dateien versionieren; `Library/`, `Temp/` und `Logs/` sind generierte Daten.
