@@ -10,6 +10,11 @@ public class Door : MonoBehaviour, IInteractable
     [SerializeField] private bool isLocked = false;
     [SerializeField] private string requiredItemID;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip openSound;
+    [SerializeField] private AudioClip closeSound;
+
     private bool isOpen;
 
     private Quaternion closedRotation;
@@ -60,5 +65,14 @@ public class Door : MonoBehaviour, IInteractable
         }
 
         isOpen = !isOpen;
+
+        if (isOpen)
+        {
+            audioSource.PlayOneShot(openSound);
+        }
+        else
+        {
+            audioSource.PlayOneShot(closeSound);
+        }
     }
 }
