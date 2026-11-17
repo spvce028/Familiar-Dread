@@ -147,6 +147,11 @@ namespace FamiliarDread
             }
 
             open = !open;
+
+            // Erst nach der Blockierungsprüfung: Eine abgelehnte Bewegung bleibt auch akustisch aus.
+            var audio = hatchPivot ? hatchPivot.GetComponent<VillaInteractionAudio>() : null;
+            if (audio)
+                audio.Play(open);
             return true;
         }
 

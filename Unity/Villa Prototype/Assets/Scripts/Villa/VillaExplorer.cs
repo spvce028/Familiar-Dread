@@ -88,7 +88,7 @@ namespace FamiliarDread
             pitch = Mathf.Clamp(pitch - look.y, -85, 85);
             view.transform.localEulerAngles = new Vector3(pitch, 0, 0);
 
-            // E bedient Türen/Luke unabhängig davon, ob die Figur gerade klettert.
+            // E bedient Türen, Luke und Kassettenrekorder unabhängig davon, ob die Figur gerade klettert.
             if (k.eKey.wasPressedThisFrame)
                 Interact();
 
@@ -132,12 +132,18 @@ namespace FamiliarDread
             Transform target = null;
             VillaDoor door;
             VillaLadder hatch;
-            if (highlightInteractions && Target(out door, out hatch))
+            VillaCassettePlayer cassette;
+            VillaLightSwitch lightSwitch;
+            if (highlightInteractions && Target(out door, out hatch, out cassette, out lightSwitch))
             {
                 if (door && !door.hideInteractionHint)
                     target = door.transform;
                 else if (hatch)
                     target = hatch.hatchPivot; // Nur den beweglichen Deckel markieren, nicht die ganze Leiter.
+                else if (cassette)
+                    target = cassette.transform;
+                else if (lightSwitch)
+                    target = lightSwitch.transform;
             }
 
             // Renderer und Ausgangswerte nur bei einem Ziel- oder Farbwechsel neu erfassen.
@@ -318,19 +324,34 @@ namespace FamiliarDread
             fall = 0;
         }
 
-        /// <summary>Sucht entlang des Kamerablicks bis zu drei Meter weit nach einer Tür oder der Luke.</summary>
-        bool Target(out VillaDoor door, out VillaLadder hatch)
+        /// <summary>Sucht im Kamerablick bis zu zwei Meter weit nach Tür, Luke oder Kassettenrekorder.</summary>
+        bool Target(out VillaDoor door, out VillaLadder hatch, out VillaCassettePlayer cassette, out VillaLightSwitch lightSwitch)
         {
             door = null;
             hatch = null;
+            cassette = null;
+            lightSwitch = null;
             if (!view)
                 return false;
+
+            // Ein gemeinsamer Blickstrahl für alle Interaktionen; Wände blockieren die Auswahl.
             RaycastHit hit;
             if (!Physics.Raycast(view.transform.position, view.transform.forward, out hit, 2))
                 return false;
+
             door = hit.collider.GetComponentInParent<VillaDoor>();
             if (door)
                 return true;
+
+            cassette = hit.collider.GetComponentInParent<VillaCassettePlayer>();
+            if (cassette && cassette.isActiveAndEnabled)
+                return true;
+            cassette = null;
+
+            lightSwitch = hit.collider.GetComponentInParent<VillaLightSwitch>();
+            if (lightSwitch && lightSwitch.isActiveAndEnabled)
+                return true;
+            lightSwitch = null;
 
             // Von unten darf der Blickstrahl die Leiter treffen: Bei Blick nach oben und naher Luke wird diese bedienbar.
             var ladder = hit.collider.GetComponentInParent<VillaLadder>();
@@ -351,13 +372,30 @@ namespace FamiliarDread
         {
             VillaDoor door;
             VillaLadder hatch;
-            if (!Target(out door, out hatch))
+            VillaCassettePlayer cassette;
+            VillaLightSwitch lightSwitch;
+            if (!Target(out door, out hatch, out cassette, out lightSwitch))
                 return false;
             if (door)
             {
                 door.Toggle(transform.position);
                 return true;
             }
+
+            if (cassette)
+            {
+                if (cassette.TryToggle())
+                    return true;
+
+                message = cassette.audioClip
+                    ? "AudioSource am Kassettenrekorder ist deaktiviert"
+                    : "Keine Kassette eingelegt – Audiodatei im Inspector zuweisen";
+                messageUntil = Time.unscaledTime + 2.5f;
+                return false;
+            }
+
+            if (lightSwitch)
+                return lightSwitch.TryToggle();
 
             if (hatch.TryToggleHatch())
                 return true;
@@ -383,10 +421,21 @@ namespace FamiliarDread
             string hint = null;
             VillaDoor door;
             VillaLadder hatch;
+            VillaCassettePlayer cassette;
+            VillaLightSwitch lightSwitch;
 
             // Hinweis erscheint nicht bei Geheimtür
-            if (Target(out door, out hatch) && (!door || !door.hideInteractionHint))
-                hint = door ? (door.open ? "E · Tür schließen" : "E · Tür öffnen") : (hatch.IsOpen ? "E · Luke schließen" : "E · Luke öffnen");
+            if (Target(out door, out hatch, out cassette, out lightSwitch) && (!door || !door.hideInteractionHint))
+            {
+                if (door)
+                    hint = "E · " + door.interactionName + (door.open ? " schließen" : " öffnen");
+                else if (hatch)
+                    hint = hatch.IsOpen ? "E · Luke schließen" : "E · Luke öffnen";
+                else if (cassette)
+                    hint = cassette.IsPlaying ? "E · Musik stoppen" : "E · Musik abspielen";
+                else if (lightSwitch)
+                    hint = lightSwitch.IsOn ? "E · Licht ausschalten" : "E · Licht einschalten";
+            }
 
             // Die kurzzeitige Fehlermeldung hat Vorrang vor dem normalen Interaktionshinweis.
             if (Time.unscaledTime < messageUntil)
