@@ -14,6 +14,12 @@ namespace FamiliarDread
         public Camera view;
         public float climbSpeed = 1.5f;
 
+        /// <summary>Wird erst durch das Aufnehmen der Taschenlampe freigeschaltet; kein dauerhafter Spielstand.</summary>
+        public bool HasFlashlight { get; private set; }
+
+        [Header("Rätsel-Oberfläche")]
+        public VillaPuzzleUI puzzleUI;
+
         [Header("Interaktions-Highlight")]
         public bool highlightInteractions = true;
         public Color interactionHighlightColor = new Color(1, .8f, .35f, 1);
@@ -56,13 +62,42 @@ namespace FamiliarDread
         void Start()
         {
             body = GetComponent<CharacterController>();
+            HasFlashlight = false;
+            var flashlight = view ? view.GetComponentInChildren<Light>(true) : null;
+            if (flashlight)
+                flashlight.enabled = false;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
 
+        /// <summary>Schaltet den Besitz frei. Mehrfaches Aufnehmen wird abgefangen.</summary>
+        public bool CollectFlashlight()
+        {
+            if (HasFlashlight)
+                return false;
+            HasFlashlight = true;
+            return true;
+        }
+
+        /// <summary>Schaltet ausschließlich die bereits aufgenommene Taschenlampe um.</summary>
+        public bool ToggleFlashlight()
+        {
+            if (!HasFlashlight || !view)
+                return false;
+            var flashlight = view.GetComponentInChildren<Light>(true);
+            if (!flashlight)
+                return false;
+            flashlight.enabled = !flashlight.enabled;
+            return true;
+        }
+
+
         // Eingaben des neuen Unity Input Systems lesen. Bei freigegebener Maus pausiert diese Steuerung.
         void Update()
         {
+            if (puzzleUI && puzzleUI.BlocksPlayerInput)
+                return;
+
             var k = Keyboard.current;
             var m = Mouse.current;
             if (k == null || m == null)
@@ -97,13 +132,9 @@ namespace FamiliarDread
                 (k.wKey.isPressed ? 1 : 0) - (k.sKey.isPressed ? 1 : 0));
             StepMovement(input, Time.deltaTime, k.leftShiftKey.isPressed ? 5 : 3);
 
-            // Auch eine momentan ausgeschaltete Taschenlampe unterhalb der Kamera finden.
+            // F funktioniert erst, nachdem die Taschenlampe gefunden und aufgenommen wurde.
             if (k.fKey.wasPressedThisFrame)
-            {
-                var light = view.GetComponentInChildren<Light>(true);
-                if (light)
-                    light.enabled = !light.enabled;
-            }
+                ToggleFlashlight();
 
             // Um Screenshots im Game-Modus aufzunehmen
             if (k.f12Key.wasPressedThisFrame)
@@ -130,11 +161,13 @@ namespace FamiliarDread
         void UpdateInteractionHighlight()
         {
             Transform target = null;
+            float highlightStrength = .30f;
             VillaDoor door;
             VillaLadder hatch;
             VillaCassettePlayer cassette;
             VillaLightSwitch lightSwitch;
-            if (highlightInteractions && Target(out door, out hatch, out cassette, out lightSwitch))
+            VillaPuzzleObject puzzleObject;
+            if (highlightInteractions && Target(out door, out hatch, out cassette, out lightSwitch, out puzzleObject))
             {
                 if (door && !door.hideInteractionHint)
                     target = door.transform;
@@ -144,6 +177,11 @@ namespace FamiliarDread
                     target = cassette.transform;
                 else if (lightSwitch)
                     target = lightSwitch.transform;
+                else if (puzzleObject)
+                {
+                    target = puzzleObject.transform;
+                    highlightStrength = puzzleObject.highlightStrength;
+                }
             }
 
             // Renderer und Ausgangswerte nur bei einem Ziel- oder Farbwechsel neu erfassen.
@@ -175,8 +213,8 @@ namespace FamiliarDread
 
                     Color originalColor = highlighted.HasColor(BaseColorId)
                         ? highlighted.GetColor(BaseColorId) : material.GetColor(BaseColorId);
-                    // Highlightfarbe wird 30% mit Objektfarbe gemischt
-                    Color tint = Color.Lerp(originalColor, interactionHighlightColor, .30f);
+                    // Rätselobjekte können bei Bedarf deutlicher hervorgehoben werden.
+                    Color tint = Color.Lerp(originalColor, interactionHighlightColor, highlightStrength);
                     tint.a = originalColor.a; // Transparenz des Materials erhalten.
                     highlighted.SetColor(BaseColorId, tint);
                     renderer.SetPropertyBlock(highlighted, i);
@@ -325,12 +363,13 @@ namespace FamiliarDread
         }
 
         /// <summary>Sucht im Kamerablick bis zu zwei Meter weit nach Tür, Luke oder Kassettenrekorder.</summary>
-        bool Target(out VillaDoor door, out VillaLadder hatch, out VillaCassettePlayer cassette, out VillaLightSwitch lightSwitch)
+        bool Target(out VillaDoor door, out VillaLadder hatch, out VillaCassettePlayer cassette, out VillaLightSwitch lightSwitch, out VillaPuzzleObject puzzleObject)
         {
             door = null;
             hatch = null;
             cassette = null;
             lightSwitch = null;
+            puzzleObject = null;
             if (!view)
                 return false;
 
@@ -338,6 +377,11 @@ namespace FamiliarDread
             RaycastHit hit;
             if (!Physics.Raycast(view.transform.position, view.transform.forward, out hit, 2))
                 return false;
+
+            puzzleObject = hit.collider.GetComponentInParent<VillaPuzzleObject>();
+            if (puzzleObject && puzzleObject.isActiveAndEnabled)
+                return true;
+            puzzleObject = null;
 
             door = hit.collider.GetComponentInParent<VillaDoor>();
             if (door)
@@ -370,12 +414,19 @@ namespace FamiliarDread
         /// <summary>Bedient das anvisierte Ziel. Liefert false, wenn kein Ziel gefunden oder die Luke blockiert wird.</summary>
         public bool Interact()
         {
+            if (puzzleUI && puzzleUI.IsOpen)
+                return false;
+
             VillaDoor door;
             VillaLadder hatch;
             VillaCassettePlayer cassette;
             VillaLightSwitch lightSwitch;
-            if (!Target(out door, out hatch, out cassette, out lightSwitch))
+            VillaPuzzleObject puzzleObject;
+            if (!Target(out door, out hatch, out cassette, out lightSwitch, out puzzleObject))
                 return false;
+            if (puzzleObject)
+                return puzzleObject.TryInteract();
+
             if (door)
             {
                 door.Toggle(transform.position);
@@ -387,9 +438,7 @@ namespace FamiliarDread
                 if (cassette.TryToggle())
                     return true;
 
-                message = cassette.audioClip
-                    ? "AudioSource am Kassettenrekorder ist deaktiviert"
-                    : "Keine Kassette eingelegt – Audiodatei im Inspector zuweisen";
+                message = cassette.UnavailableMessage;
                 messageUntil = Time.unscaledTime + 2.5f;
                 return false;
             }
@@ -416,6 +465,9 @@ namespace FamiliarDread
         // Einfache Prototyp-Anzeige: Steuerung, Fadenkreuz und Hinweise passend zum anvisierten Objekt.
         void OnGUI()
         {
+            if (puzzleUI && puzzleUI.IsOpen)
+                return;
+
             GUI.color = new Color(1, 1, 1, .8f);
             GUI.Label(new Rect(Screen.width / 2 - 4, Screen.height / 2 - 10, 15, 25), "+");
             string hint = null;
@@ -423,18 +475,21 @@ namespace FamiliarDread
             VillaLadder hatch;
             VillaCassettePlayer cassette;
             VillaLightSwitch lightSwitch;
+            VillaPuzzleObject puzzleObject;
 
             // Hinweis erscheint nicht bei Geheimtür
-            if (Target(out door, out hatch, out cassette, out lightSwitch) && (!door || !door.hideInteractionHint))
+            if (Target(out door, out hatch, out cassette, out lightSwitch, out puzzleObject) && (!door || !door.hideInteractionHint))
             {
                 if (door)
                     hint = "E · " + door.interactionName + (door.open ? " schließen" : " öffnen");
                 else if (hatch)
                     hint = hatch.IsOpen ? "E · Luke schließen" : "E · Luke öffnen";
                 else if (cassette)
-                    hint = cassette.IsPlaying ? "E · Musik stoppen" : "E · Musik abspielen";
+                    hint = cassette.InteractionHint;
                 else if (lightSwitch)
                     hint = lightSwitch.IsOn ? "E · Licht ausschalten" : "E · Licht einschalten";
+                else if (puzzleObject)
+                    hint = puzzleObject.InteractionHint;
             }
 
             // Die kurzzeitige Fehlermeldung hat Vorrang vor dem normalen Interaktionshinweis.

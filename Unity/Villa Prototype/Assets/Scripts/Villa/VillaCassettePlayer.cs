@@ -12,6 +12,33 @@ namespace FamiliarDread
         [Tooltip("Hier die importierte Musik- oder Sprachdatei aus dem Project-Fenster hineinziehen.")]
         public AudioClip audioClip;
 
+        [Tooltip("Optional: Verknüpft diesen Rekorder mit der gefundenen Rätselkassette.")]
+        public VillaPuzzleState puzzle;
+        bool originalLoop;
+
+        public string InteractionHint
+        {
+            get
+            {
+                if (IsPlaying)
+                    return "E · Wiedergabe stoppen";
+                return puzzle && !puzzle.TapeCollected ? "E · Kassettenrekorder benutzen"
+                    : puzzle ? "E · Kassette abspielen" : "E · Musik abspielen";
+            }
+        }
+
+        public string UnavailableMessage
+        {
+            get
+            {
+                if (puzzle && !puzzle.TapeCollected)
+                    return "Keine Kassette eingelegt – finde zuerst die Aufnahme.";
+                if (puzzle ? !puzzle.tapeAudio : !audioClip)
+                    return "Keine Aufnahme zugewiesen – Audio Clip im Inspector prüfen.";
+                return "AudioSource am Kassettenrekorder ist deaktiviert";
+            }
+        }
+
         AudioSource audioSource;
 
         // Die Referenz bei Bedarf holen: funktioniert auch vor Awake, beispielsweise im Editor.
@@ -44,7 +71,7 @@ namespace FamiliarDread
 
         void Awake()
         {
-            // Die Musik startet ausschließlich durch Interaktion, niemals beim Spielstart.
+            originalLoop = Source.loop;
             Source.playOnAwake = false;
         }
 
@@ -57,11 +84,20 @@ namespace FamiliarDread
                 return true;
             }
 
-            if (!audioClip || !Source.enabled)
+            // Die bisher zugewiesene Musik bleibt erhalten. Ein verknüpftes Rätsel nutzt seine eigene Kassette.
+            var clip = puzzle ? (puzzle.TapeCollected ? puzzle.tapeAudio : null) : audioClip;
+            if (!clip || !Source.enabled)
                 return false;
 
-            Source.clip = audioClip;
+            Source.clip = clip;
+            Source.loop = puzzle ? false : originalLoop;
             Source.Play();
+            if (puzzle)
+            {
+                puzzle.MarkTapePlayed();
+                if (puzzle.ui)
+                    puzzle.ui.ShowTranscript(this);
+            }
             return true;
         }
 

@@ -455,8 +455,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d6ce24fd8be0ed4183331fffcc2e846, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FamiliarDread.VillaInteractionAudio
-  activateClip: {fileID: 8300000, guid: bcddf47e075042b46ab1243f20404761, type: 3}
-  deactivateClip: {fileID: 8300000, guid: bcddf47e075042b46ab1243f20404761, type: 3}
+  activateClip: {fileID: 8300000, guid: fcab887107bb70a44986f1ff306b20dd, type: 3}
+  deactivateClip: {fileID: 8300000, guid: fcab887107bb70a44986f1ff306b20dd, type: 3}
 --- !u!1 &5392513601238303785
 GameObject:
   m_ObjectHideFlags: 0
