@@ -14,6 +14,10 @@ namespace FamiliarDread
         public Camera view;
         public float climbSpeed = 1.5f;
 
+        [Header("Springen")]
+        [Tooltip("Maximale Sprunghöhe in Metern. Absichtlich niedrig gehalten.")]
+        public float jumpHeight = 0.5f;
+
         /// <summary>Wird erst durch das Aufnehmen der Taschenlampe freigeschaltet; kein dauerhafter Spielstand.</summary>
         public bool HasFlashlight { get; private set; }
 
@@ -38,7 +42,9 @@ namespace FamiliarDread
         }
 
         // pitch: vertikaler Blickwinkel; fall: vertikale Geschwindigkeit; cooldown: kurze Sperre nach dem Verlassen eines Leiterendes.
+        const float Gravity = 20f;
         float pitch, fall, cooldown;
+        bool jumpQueued;
         CharacterController body;
         VillaLadder activeLadder;
 
@@ -130,6 +136,8 @@ namespace FamiliarDread
             // X = seitwärts, Y = vorwärts/rückwärts. Diagonale Bewegung wird in StepMovement begrenzt.
             var input = new Vector2((k.dKey.isPressed ? 1 : 0) - (k.aKey.isPressed ? 1 : 0),
                 (k.wKey.isPressed ? 1 : 0) - (k.sKey.isPressed ? 1 : 0));
+            if (k.spaceKey.wasPressedThisFrame)
+                jumpQueued = true;
             StepMovement(input, Time.deltaTime, k.leftShiftKey.isPressed ? 5 : 3);
 
             // F funktioniert erst, nachdem die Taschenlampe gefunden und aufgenommen wurde.
@@ -279,6 +287,7 @@ namespace FamiliarDread
             {
                 // Die Figur bleibt bis zu einem Leiterende gebunden. A/D werden vollständig ignoriert.
                 // Ohne W/S hält sie ihre Position; die Kamera darf sich weiterhin frei drehen.
+                jumpQueued = false;
                 fall = 0;
                 if (Mathf.Abs(input.y) <= .1f)
                     return;
@@ -347,8 +356,27 @@ namespace FamiliarDread
                 return;
             }
 
-            // Normales Gehen: leichter Bodendruck bei Kontakt, ansonsten Schwerkraft mit 20 m/s².
-            fall = body.isGrounded ? -2 : fall - 20 * dt;
+            // Normales Gehen: Am Boden startet Leertaste einen niedrigen Sprung,
+            // ansonsten sorgt die Schwerkraft (20 m/s²) für das Fallen.
+            if (body.isGrounded)
+            {
+                if (jumpQueued)
+                {
+                    // v = sqrt(2 * g * h): h ist die im Inspector eingestellte Sprunghöhe.
+                    fall = Mathf.Sqrt(2f * Gravity * Mathf.Max(0f, jumpHeight));
+                    jumpQueued = false;
+                }
+                else
+                {
+                    fall = -2;
+                }
+            }
+            else
+            {
+                fall -= Gravity * dt;
+                jumpQueued = false;
+            }
+
             body.Move((movement * walkSpeed + Vector3.up * fall) * dt);
         }
 
