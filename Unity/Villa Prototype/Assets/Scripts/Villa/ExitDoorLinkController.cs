@@ -1,6 +1,6 @@
 using UnityEngine;
-using Unity.AI.Navigation; // Wichtig für NavMeshLink
-using FamiliarDread;         // Greift auf das Skript deines Teams zu
+using Unity.AI.Navigation;
+using FamiliarDread;
 
 
 //Der Killer kommt nicht aus dem haus, deswegen wurde eine "Brücke" zwischen Außen- und Innenbereich platziert.

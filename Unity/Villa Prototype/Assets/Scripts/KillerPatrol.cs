@@ -3,6 +3,10 @@ using UnityEngine.AI;
 
 public class KillerPatrol : MonoBehaviour
 {
+
+    public bool istAggressiv = false;
+
+
     [Header("Patrouille")]
     public Transform[] wegpunkte;
     public float warteZeit = 4f;
@@ -70,7 +74,7 @@ public class KillerPatrol : MonoBehaviour
 
         PruefeSichtlinie();
 
-        if (verfolgtSpieler)
+        if (verfolgtSpieler || istAggressiv)
         {
             VerfolgeSpieler();
         }
@@ -127,7 +131,7 @@ public class KillerPatrol : MonoBehaviour
         }
 
         // Wenn kein Sichtkontakt mehr besteht, Timer hochzählen
-        if (!siehtSpielerGerade)
+        if (!siehtSpielerGerade && !istAggressiv)
         {
             verlustTimer += Time.deltaTime;
             if (verlustTimer >= zeitBisAufgabe)
