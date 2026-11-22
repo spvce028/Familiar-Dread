@@ -4,7 +4,7 @@ using UnityEngine.AI;
 public class KillerPatrol : MonoBehaviour
 {
     public Transform[] wegpunkte;
-    public float warteZeit = 3f;
+    public float warteZeit = 5f;
 
     private NavMeshAgent agent;
     private Animator animator;
@@ -16,9 +16,9 @@ public class KillerPatrol : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
-        if (wegpunkte.Length > 0)
-        {
-            agent.SetDestination(wegpunkte[0].position);
+        if (wegpunkte.Length > 0){
+            aktuellerPunkt = Random.Range(0, wegpunkte.Length);
+            agent.SetDestination(wegpunkte[aktuellerPunkt].position);
         }
     }
 
@@ -33,14 +33,22 @@ public class KillerPatrol : MonoBehaviour
         if (wegpunkte.Length == 0) return;
 
         // Prüft, ob Jess den aktuellen Wegpunkt erreicht hat
-        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
-        {
+        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance){
             timer += Time.deltaTime;
 
             // Wartet kurz im Idle Zustand, bevor sie zum nächsten Punkt geht
-            if (timer >= warteZeit)
-            {
-                aktuellerPunkt = (aktuellerPunkt + 1) % wegpunkte.Length;
+            if (timer >= warteZeit){
+                if (wegpunkte.Length > 1){
+                    int naechsterPunkt = aktuellerPunkt;
+                    
+                    // Würfelt so lange neu, bis ein anderer Punkt als der jetzige gezogen wird
+                    while (naechsterPunkt == aktuellerPunkt){
+                        naechsterPunkt = Random.Range(0, wegpunkte.Length);
+                    }
+                    
+                    aktuellerPunkt = naechsterPunkt;
+                }
+
                 agent.SetDestination(wegpunkte[aktuellerPunkt].position);
                 timer = 0f;
             }
