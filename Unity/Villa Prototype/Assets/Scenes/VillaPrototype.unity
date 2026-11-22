@@ -97628,6 +97628,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExitDoorLinkController
   exitLink: {fileID: 438106074}
+  spielerInventar: {fileID: 1715361937}
+  story: {fileID: 1330519861}
 --- !u!1 &954705010
 GameObject:
   m_ObjectHideFlags: 0
@@ -153653,6 +153655,7 @@ MonoBehaviour:
   killer: {fileID: 1000814132}
   schluesselAnHuefte: {fileID: 1272438976}
   aufhebeReichweite: 2.5
+  taschendiebstahlReichweite: 2.2
 --- !u!1 &1551886306
 GameObject:
   m_ObjectHideFlags: 0
